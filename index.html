@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnTrack - Router</title>
+    <style>
+        body { margin: 0; font-family: 'Sora', sans-serif; background: #F8F9FA; }
+        #app-viewport { min-height: 100vh; display: flex; flex-direction: column; }
+        .loading-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: white; display: flex; justify-content: center; 
+            align-items: center; z-index: 9999; transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <div class="loading-overlay" id="loader">Cargando...</div>
+    </div>
+
+    <script>
+        /**
+         * Diccionario de rutas actualizado con los nuevos archivos
+         */
+        const routes = {
+            '/': 'docente-perfil.html',
+            '/perfil': 'docente-perfil.html',
+            '/estudiantes': 'docente-estudiantes.html',
+            '/nueva-actividad': 'docente-nueva-actividad.html',
+            '/feynman-review': 'docente-feynman-review.html',
+            '/ruta-aprendizaje': 'docente-ruta-aprendizaje.html',
+            // Nuevas rutas agregadas:
+            '/carga-ia': 'docente-carga-ia.html',
+            '/creacion-manual': 'docente-creacion-manual.html',
+            '/editor-ia': 'docente-editor-ia.html'
+        };
+
+        async function router() {
+            const viewport = document.getElementById('app-viewport');
+            const loader = document.getElementById('loader');
+            
+            const path = window.location.pathname;
+            // Si la ruta no existe en el diccionario, redirigimos al perfil
+            const fileToLoad = routes[path] || 'docente-perfil.html'; 
+
+            try {
+                loader.style.display = 'flex';
+
+                const response = await fetch(fileToLoad);
+                if (!response.ok) throw new Error('Error al cargar la vista');
+                
+                const html = await response.text();
+                viewport.innerHTML = html;
+
+                // Re-ejecutar scripts para que los botones de las pantallas funcionen
+                const scripts = viewport.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+
+            } catch (error) {
+                console.error(error);
+                viewport.innerHTML = `
+                    <div style="padding: 50px; text-align: center;">
+                        <h1>404 - No encontrado</h1>
+                        <p>No pudimos cargar la vista: ${path}</p>
+                        <button onclick="navigateTo('/')" style="cursor:pointer; padding: 10px 20px;">Volver al inicio</button>
+                    </div>`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        window.onpopstate = router;
+        window.addEventListener('DOMContentLoaded', router);
+
+        window.navigateTo = function(path) {
+            window.history.pushState({}, "", path);
+            router();
+        };
+    </script>
+</body>
+</html>
